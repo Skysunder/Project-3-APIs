@@ -49,10 +49,12 @@ function createComment(url, request) {
   const requestComment = request.body && request.body.comment;
   const response = {};
 
+  response.status = 400;
+
   if (requestComment && requestComment.body && requestComment.articleId &&
         requestComment.username && database.users[requestComment.username]
         && database.articles[requestComment.articleId]) {
-      const newComment = {
+        const newComment = {
         id: database.nextCommentId++,
         body: requestComment.body,
         username: requestComment.username,
@@ -63,45 +65,31 @@ function createComment(url, request) {
     database.comments[newComment.id] = newComment;
     database.users[newComment.username].commentIds.push(newComment.id);
     database.articles[newComment.articleId].commentIds.push(newComment.id);
-    response.body = {newComment: newComment};
+    response.body = {comment: newComment};
     response.status = 201;
-  } else {
-    response.status = 400;
+    console.log(response.status);
   }
 
   return response;
 }
 
-// updates an existing comment
+// updates an existing comment (only if a new comment body is provided)
 function updateComment(url, request) {
-  const requestComment = request.body && request.body.comment;
-  const response = {};
-  const articleId = Number(url.split('/').filter(segment => segment)[1]);
-  const username = request.username;
-  if (!url || !request) {
-    response.status = 404;
-  }
-  else if (!requestComment) {
-    response.status = 400;
-  }
-  else if (requestComment && requestComment.body && requestComment.articleId
-    && requestComment.username && database.users[requestComment.username]
-    && database.articles[requestComment.articleId]) {
-    const updatedComment = {
-      id: requestComment.id,
-      body: requestComment.body,
-      username: requestComment.username,
-      articleId: requestComment.articleId,
-      upvotedBy: [],
-      downvotedBy: []
-    }
-    response.status = 200;
-    response.body = {updatedComment: updatedComment};
-  }
-  else {
-    response.status = 400;
-  }
-return response;
+  const id = Number(url.split('/').filter(segment => segment)[1]);
+ const savedComment = database.comments[id];
+ const requestComment = request.body && request.body.comment;
+ const response = {};
+
+ if (!id || !requestComment) {
+   response.status = 400;
+ } else if (!savedComment) {
+   response.status = 404;
+ } else {
+   savedComment.body = requestComment.body || savedComment.body;
+   response.body = {comment: savedComment};
+   response.status = 200;
+ }
+ return response;
 }
 
 // deletes a comment and removes it from all saved areas
